@@ -19,9 +19,19 @@ func GetRouter() *mux.Router {
 }
 
 func resolver(request *http.Request) *spec.IPReply {
-	ip := request.Header.Get("x-forwarded-for")
+	// Try to get Cf-Connecting-Ip header first
+	ip := request.Header.Get("Cf-Connecting-Ip")
 	if ip == "" {
-		ip = strings.Split(request.RemoteAddr, ":")[0]
+		// If not found, try to get X-Forwarded-For header
+		ip = request.Header.Get("X-Forwarded-For")
+		if ip == "" {
+			// If not found, try to get RemoteAddr
+			ip = request.RemoteAddr
+			if ip == "" {
+				// If not found, return an empty IPReply
+				return &spec.IPReply{}
+			}
+		}
 	}
 	return &spec.IPReply{Ip: ip}
 }
